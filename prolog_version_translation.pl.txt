@@ -1,0 +1,56 @@
+% Define the program lines as facts
+line(1, put(0, r1)).          % Initialize r1 to 0 (starting point)
+line(2, prn(r1)).             % Print the value of r1
+line(3, add(r1, 1)).          % r1 = r1 + 1 (increment)
+line(4, jmpe(r1, 10, 8)).     % If r1 equals 10, jump to halt (line 8)
+line(5, put(10, r2)).         % Set r2 to 10 for comparison
+line(6, jmpu(2)).             % Jump back to line 2 to print the value again
+line(8, halt(stop)).          % Stop the program
+
+% Initial register values
+initial_state([r1=0, r2=10]).  % r1 is the counter, r2 is the limit
+
+% Main entry point to run the program
+run :-
+    initial_state(State),        % Get the initial state
+    execute(1, State).          % Start execution at line 1
+
+% Execute the line based on the current line number
+execute(LineNumber, State) :-
+    line(LineNumber, Action),     % Get the action from the current line
+    execute_action(Action, LineNumber, State).  % Execute the action
+
+% Handle the 'put' action
+execute_action(put(Value, Register), LineNumber, State) :-
+    select(Register=_, State, Register=Value, NewState),  % Update the register
+    NextLine is LineNumber + 1,  % Move to the next line
+    execute(NextLine, NewState).  % Continue execution
+
+% Handle the 'prn' action
+execute_action(prn(Register), LineNumber, State) :-
+    member(Register=Value, State),  % Get the current value of the register
+    write(Value), nl,                % Print the value
+    NextLine is LineNumber + 1,      % Move to the next line
+    execute(NextLine, State).        % Continue execution
+
+% Handle the 'add' action
+execute_action(add(Register, Increment), LineNumber, State) :-
+    member(Register=CurrentValue, State),
+    NewValue is CurrentValue + Increment,  % Increment the register value
+    select(Register=CurrentValue, State, Register=NewValue, NewState),  % Update the state
+    NextLine is LineNumber + 1,            % Move to the next line
+    execute(NextLine, NewState).            % Continue execution
+
+% Handle the 'jmpe' action
+execute_action(jmpe(Register1, Target, _), LineNumber, State) :-
+    member(Register1=Value1, State),
+    (Value1 >= 10 -> NextLine is Target ; NextLine is LineNumber + 1),  % Check condition
+    execute(NextLine, State).  % Continue execution
+
+% Handle the 'jmpu' action
+execute_action(jmpu(Target), _, State) :-
+    execute(Target, State).  % Jump to the specified line
+
+% Handle the 'halt' action
+execute_action(halt(_), _, _) :-
+    !.  % Stop execution
